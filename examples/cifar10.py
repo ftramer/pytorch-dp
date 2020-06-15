@@ -189,8 +189,7 @@ def main():
     # since our differential privacy engine does not support BatchNormXd
     # we need to replace all such blocks with DP-aware normalisation modules
     model = models.resnet18(num_classes=10)
-    model = utils.convert_batchnorm_modules(model)
-    # model = utils.nullify_batchnorm_modules(model, None)
+    model = utils.convert_batchnorm_modules(model, n_groups=4)
 
     if args.gpu is not None:
         torch.cuda.set_device(args.gpu)

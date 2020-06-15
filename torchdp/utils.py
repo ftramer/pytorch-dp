@@ -32,7 +32,10 @@ def get_layer_type(layer: nn.Module) -> str:
 
 
 def _replace_child(
-    root: nn.Module, child_name: str, converter: Callable[[nn.Module], nn.Module]
+    root: nn.Module,
+    child_name: str,
+    converter: Callable[[nn.Module, int], nn.Module],
+    **kwargs
 ) -> None:
     """ A helper function, given the root module (e.g. x) and
     string representing the name of the submodule
@@ -45,13 +48,14 @@ def _replace_child(
     for name in nameList[:-1]:
         parent = parent._modules[name]
     # set to identity
-    parent._modules[nameList[-1]] = converter(parent._modules[nameList[-1]])
+    parent._modules[nameList[-1]] = converter(parent._modules[nameList[-1]], **kwargs)
 
 
 def replace_all_modules(
     root: nn.Module,
     target_class: Type[nn.Module],
-    converter: Callable[[nn.Module], nn.Module],
+    converter: Callable[[nn.Module, int], nn.Module],
+    **kwargs
 ) -> nn.Module:
     """
     Given a module `root`, and a `target_class` of type nn.Module,
@@ -84,11 +88,11 @@ def replace_all_modules(
         """
     # base case
     if isinstance(root, target_class):
-        return converter(root)
+        return converter(root, **kwargs)
 
     for name, obj in root.named_modules():
         if isinstance(obj, target_class):
-            _replace_child(root, name, converter)
+            _replace_child(root, name, converter, **kwargs)
     return root
 
 
@@ -108,7 +112,7 @@ def _batchnorm_to_instancenorm(module: nn.modules.batchnorm._BatchNorm) -> nn.Mo
     return matchDim()(module.num_features)
 
 
-def _batchnorm_to_groupnorm(module: nn.modules.batchnorm._BatchNorm) -> nn.Module:
+def _batchnorm_to_groupnorm(module: nn.modules.batchnorm._BatchNorm, n_groups=32) -> nn.Module:
     """
     Converts a BatchNorm `module` to GroupNorm module.
     This is a helper function.
@@ -118,7 +122,7 @@ def _batchnorm_to_groupnorm(module: nn.modules.batchnorm._BatchNorm) -> nn.Modul
         paper *Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour*
         https://arxiv.org/pdf/1706.02677.pdf
     """
-    return nn.GroupNorm(min(32, module.num_features), module.num_features, affine=True)
+    return nn.GroupNorm(min(n_groups, module.num_features), module.num_features, affine=True)
 
 
 def nullify_batchnorm_modules(root: nn.Module, target_class):
@@ -140,6 +144,7 @@ def convert_batchnorm_modules(
     converter: Callable[
         [nn.modules.batchnorm._BatchNorm], nn.Module
     ] = _batchnorm_to_groupnorm,
+    **kwargs,
 ):
     """
     Converts all BatchNorm modules to another module
@@ -165,7 +170,7 @@ def convert_batchnorm_modules(
         print(model.layer1[0].bn1)
         # prints GroupNorm module details
     """
-    return replace_all_modules(model, nn.modules.batchnorm._BatchNorm, converter)
+    return replace_all_modules(model, nn.modules.batchnorm._BatchNorm, converter, **kwargs)
 
 
 def has_no_param(module: nn.Module):
