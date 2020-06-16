@@ -336,14 +336,14 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
 
         if args.gpu is not None:
             images = images.cuda(args.gpu, non_blocking=True)
-        target = target.cuda(args.gpu, non_blocking=True)
+            target = target.cuda(args.gpu, non_blocking=True)
 
         # compute output
         output = model(images)
         loss = criterion(output, target)
 
         # measure accuracy and record loss
-        (acc1,) = accuracy(output, target)
+        acc1, = accuracy(output, target)
         stats.update(stats.StatType.TRAIN, acc1=acc1[0])
         losses.update(loss.item(), images.size(0))
         top1.update(acc1[0], images.size(0))
