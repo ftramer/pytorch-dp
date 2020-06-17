@@ -44,7 +44,7 @@ stats.add(
 
 # The following lines enable stat gathering for the clipping process
 # and set a default of per layer clipping for the Privacy Engine
-clipping = {"clip_per_layer": False, "enable_stat": True}
+clipping = {"clip_per_layer": False, "enable_stat": False}
 
 parser = argparse.ArgumentParser(description="PyTorch CIFAR-10 DP Training")
 parser.add_argument(
@@ -334,9 +334,8 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
         # measure data loading time
         data_time.update(time.time() - end)
 
-        if args.gpu is not None:
-            images = images.cuda(args.gpu, non_blocking=True)
-            target = target.cuda(args.gpu, non_blocking=True)
+        images = images.cuda(args.gpu, non_blocking=True)
+        target = target.cuda(args.gpu, non_blocking=True)
 
         # compute output
         output = model(images)
@@ -369,14 +368,17 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
         print(
             f"Train Epoch: {epoch:3d} \t"
             f"Loss: {losses.avg:.6f} \t"
-            f"Top1: {top1.avg:.2f} "
+            f"Top1: {top1.avg:.2f} \t"
+            f"Time: {batch_time.sum:.4f} \t"
             f"(Ɛ = {epsilon:.3f}, 𝛿 = {args.delta}) for α = {best_alpha}"
+
         )
     else:
         print(
             f"Train Epoch: {epoch:3d} \t"
             f"Loss: {losses.avg:.6f} \t"
-            f"Top1: {top1.avg:.2f}"
+            f"Top1: {top1.avg:.2f} \t"
+            f"Time: {batch_time.sum:.4f}"
         )
 
 
